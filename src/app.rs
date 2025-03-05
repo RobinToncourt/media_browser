@@ -3,6 +3,8 @@ use std::fs;
 use egui::CollapsingHeader;
 
 use crate::audio_player::AudioPlayer;
+use crate::text::Text;
+use crate::video::Video;
 
 const HOME_PATH: &str = "/home/robin/";
 
@@ -23,16 +25,28 @@ impl Path {
     }
 }
 
+enum ActiveUi {
+    Audio,
+    Text,
+    Video,
+}
+
 pub struct TemplateApp {
     selected_path: Option<Path>,
+    active_ui: ActiveUi,
     audio_player: AudioPlayer,
+    text: Text,
+    video: Video,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             selected_path: None,
+            active_ui: ActiveUi::Text,
             audio_player: AudioPlayer::default(),
+            text: Text::new("No file selected".to_string()),
+            video: Video::default(),
         }
     }
 }
@@ -58,15 +72,17 @@ impl TemplateApp {
                 .id_salt("explorer")
                 .show(&mut columns[0], |ui| {
                     CollapsingHeader::new(HOME_PATH)
-                    .default_open(false)
-                    .show(ui, |ui| {
-                        self.print_document(ui, HOME_PATH);
-                    });
+                        .default_open(false)
+                        .show(ui, |ui| {
+                            self.print_document(ui, HOME_PATH);
+                        });
                 });
             ScrollArea::vertical()
                 .id_salt("media_player")
-                .show(&mut columns[1], |ui| {
-                    self.audio_player.ui(ui);
+                .show(&mut columns[1], |ui| match self.active_ui {
+                    ActiveUi::Audio => self.audio_player.ui(ui),
+                    ActiveUi::Text => self.text.ui(ui),
+                    ActiveUi::Video => self.video.ui(ui),
                 });
         });
     }
@@ -78,10 +94,10 @@ impl TemplateApp {
             let path = entry.path();
             if path.is_dir() {
                 CollapsingHeader::new(path.file_name().unwrap().to_str().unwrap())
-                .default_open(false)
-                .show(ui, |ui| {
-                    self.print_document(ui, &path.display().to_string());
-                });
+                    .default_open(false)
+                    .show(ui, |ui| {
+                        self.print_document(ui, &path.display().to_string());
+                    });
             } else {
                 let file_name = path.file_name().unwrap().to_str().unwrap();
                 if ui.label(file_name).clicked() {
@@ -100,16 +116,24 @@ impl TemplateApp {
     fn resolve_file(&mut self, ui: &mut egui::Ui) {
         if let Some(path) = &self.selected_path {
             match path.extension.as_str() {
-                "png" | "jpg" => {ui.label("C'est une image");},
-                "txt" => {ui.label("Basic text file");},
-                "pdf" => {ui.label("Portable Document Format");},
+                "png" | "jpg" => {
+                    ui.label("C'est une image");
+                }
+                "txt" => {
+                    self.active_ui = ActiveUi::Text;
+                    //self.text.print();
+                }
+                "pdf" => {
+                    ui.label("Portable Document Format");
+                }
                 "mp3" => {
-                    self.audio_player.play(
-                        path.full_path.clone(),
-                        path.file_name.clone(),
-                    );
-                },
-                _ => {println!("{}", path.file_name.as_str());},
+                    self.active_ui = ActiveUi::Audio;
+                    self.audio_player
+                        .play(path.full_path.clone(), path.file_name.clone());
+                }
+                _ => {
+                    println!("{}", path.file_name.as_str());
+                }
             }
         } else {
             ui.label("No file selected");
@@ -120,28 +144,20 @@ impl TemplateApp {
 use egui::ScrollArea;
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         // eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::widgets::global_theme_preference_buttons(ui);
+            });
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             self.main_component(ui);
         });
     }
-}
-
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
 }

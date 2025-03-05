@@ -1,21 +1,20 @@
 use soloud::*;
-use std::thread::{self, JoinHandle};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{self, Sender, Receiver, TryRecvError};
+use std::thread::{self, JoinHandle};
 
 #[derive(Debug)]
 pub enum AudioControl {
     Play,
     Pause,
     Stop,
-    Seek(usize),
+    // Seek(usize), TODO
     InfoTED,
     InfoSID,
 }
 
 pub struct AudioPlayer {
     sl: Arc<Mutex<Soloud>>,
-    wav: Wav,
     audio_file_name: String,
     is_paused: bool,
     sender: Option<Sender<AudioControl>>,
@@ -26,7 +25,6 @@ impl Default for AudioPlayer {
     fn default() -> Self {
         Self {
             sl: Arc::new(Mutex::new(Soloud::default().unwrap())),
-            wav: Wav::default(),
             audio_file_name: "No audio playing".to_string(),
             is_paused: false,
             sender: None,
@@ -37,21 +35,23 @@ impl Default for AudioPlayer {
 
 impl AudioPlayer {
     pub fn play(&mut self, full_path: String, audio_file_name: String) {
+        self.audio_file_name = audio_file_name;
         let (sender, receiver) = mpsc::channel::<AudioControl>();
         self.sender = Some(sender);
 
         let thread_sl = Arc::clone(&self.sl);
-        self.audio_thread = Some(
-            thread::spawn(|| music_handler_thread_runner(full_path, thread_sl, receiver))
-        );
+        self.audio_thread = Some(thread::spawn(|| {
+            music_handler_thread_runner(full_path, thread_sl, receiver)
+        }));
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         ui.label(&self.audio_file_name);
         // Pause/play.
-        if ui.add(egui::Button::new(
-            self.get_pause_play_button_label())
-        ).clicked() {
+        if ui
+            .add(egui::Button::new(self.get_pause_play_button_label()))
+            .clicked()
+        {
             let action = self.get_pause_play_action();
             self.pause_play(action);
         }
@@ -112,7 +112,11 @@ impl AudioPlayer {
     }
 }
 
-pub fn music_handler_thread_runner(full_path: String, thread_sl: Arc<Mutex<Soloud>>, receiver: Receiver<AudioControl>) {
+pub fn music_handler_thread_runner(
+    full_path: String,
+    thread_sl: Arc<Mutex<Soloud>>,
+    receiver: Receiver<AudioControl>,
+) {
     let mut wav = Wav::default();
     println!("{full_path}");
     wav.load(&std::path::Path::new(&full_path)).unwrap();
@@ -127,25 +131,24 @@ pub fn music_handler_thread_runner(full_path: String, thread_sl: Arc<Mutex<Solou
                     AudioControl::Play => sl.set_pause(handler, false),
                     AudioControl::Pause => sl.set_pause(handler, true),
                     AudioControl::Stop => sl.stop(handler),
-                    AudioControl::Seek(_) => todo!(),
                     AudioControl::InfoTED => {
                         println!("----- TED");
                         for i in 0..=31 {
                             println!("{}", sl.info(handler, i));
                         }
                         println!("----- FIN");
-                    },
+                    }
                     AudioControl::InfoSID => {
                         println!("----- SID");
                         for i in 64..=69 {
                             println!("{}", sl.info(handler, i));
                         }
                         println!("----- FIN");
-                    },
+                    }
                 }
-            },
+            }
             Err(TryRecvError::Disconnected) => break,
-            Err(TryRecvError::Empty) => {},
+            Err(TryRecvError::Empty) => {}
         }
     }
 }
