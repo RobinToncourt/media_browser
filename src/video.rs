@@ -2,28 +2,28 @@ use egui::{TextEdit, Sense, Window, Grid, DragValue, Slider, };
 use egui_video::{AudioDevice, Player};
 
 pub struct Video {
-    audio_device: AudioDevice,
-    player: Option<Player>,
+    // audio_device: AudioDevice,
+    // player: Option<Player>,
     media_path: String,
-    stream_size_scale: f32,
-    seek_frac: f32,
+    // stream_size_scale: f32,
+    // seek_frac: f32,
 }
 
 impl Default for Video {
     fn default() -> Self {
         Self {
-            audio_device: AudioDevice::new().unwrap(),
-            player: None,
+            // audio_device: AudioDevice::new().unwrap(),
+            // player: None,
             media_path: String::new(),
-            stream_size_scale: 1.0,
-            seek_frac: 0.0,
+            // stream_size_scale: 1.0,
+            // seek_frac: 0.0,
         }
     }
 }
 
 impl Video {
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+        /*ui.horizontal(|ui| {
             ui.add_enabled_ui(!self.media_path.is_empty(), |ui| {
                 if ui.button("load").clicked() {
                     match Player::new(ctx, &self.media_path.replace("\"", "")).and_then(|p| {
@@ -142,10 +142,10 @@ impl Video {
             });
 
             player.ui(ui, player.size * self.stream_size_scale);
-        }
+        }*/
     }
 
-    pub fn set_media_path(&mut self, media_path) {
+    pub fn set_media_path(&mut self, media_path: String) {
         self.media_path = media_path;
     }
 }

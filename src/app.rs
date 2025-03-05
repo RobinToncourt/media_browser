@@ -2,7 +2,7 @@ use std::fs;
 
 use egui::CollapsingHeader;
 
-use crate::audio_player::AudioPlayer;
+use crate::audio::Audio;
 use crate::text::Text;
 use crate::video::Video;
 
@@ -34,7 +34,7 @@ enum ActiveUi {
 pub struct TemplateApp {
     selected_path: Option<Path>,
     active_ui: ActiveUi,
-    audio_player: AudioPlayer,
+    audio_player: Audio,
     text: Text,
     video: Video,
 }
@@ -44,7 +44,7 @@ impl Default for TemplateApp {
         Self {
             selected_path: None,
             active_ui: ActiveUi::Text,
-            audio_player: AudioPlayer::default(),
+            audio_player: Audio::default(),
             text: Text::new("No file selected".to_string()),
             video: Video::default(),
         }

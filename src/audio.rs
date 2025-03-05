@@ -13,7 +13,7 @@ pub enum AudioControl {
     InfoSID,
 }
 
-pub struct AudioPlayer {
+pub struct Audio {
     sl: Arc<Mutex<Soloud>>,
     audio_file_name: String,
     is_paused: bool,
@@ -21,7 +21,7 @@ pub struct AudioPlayer {
     audio_thread: Option<JoinHandle<()>>,
 }
 
-impl Default for AudioPlayer {
+impl Default for Audio {
     fn default() -> Self {
         Self {
             sl: Arc::new(Mutex::new(Soloud::default().unwrap())),
@@ -33,7 +33,7 @@ impl Default for AudioPlayer {
     }
 }
 
-impl AudioPlayer {
+impl Audio {
     pub fn play(&mut self, full_path: String, audio_file_name: String) {
         self.audio_file_name = audio_file_name;
         let (sender, receiver) = mpsc::channel::<AudioControl>();
