@@ -1,72 +1,28 @@
-use egui::{TextEdit, Sense, Window, Grid, DragValue, Slider, };
-use egui_video::{AudioDevice, Player};
+use egui::{Window, Grid, DragValue, Slider, };
+use egui_video::{Player};
 
 pub struct Video {
     // audio_device: AudioDevice,
-    // player: Option<Player>,
+    player: Option<Player>,
     media_path: String,
-    // stream_size_scale: f32,
-    // seek_frac: f32,
+    stream_size_scale: f32,
+    seek_frac: f32,
 }
 
 impl Default for Video {
     fn default() -> Self {
         Self {
             // audio_device: AudioDevice::new().unwrap(),
-            // player: None,
+            player: None,
             media_path: String::new(),
-            // stream_size_scale: 1.0,
-            // seek_frac: 0.0,
+            stream_size_scale: 1.0,
+            seek_frac: 0.0,
         }
     }
 }
 
 impl Video {
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
-        /*ui.horizontal(|ui| {
-            ui.add_enabled_ui(!self.media_path.is_empty(), |ui| {
-                if ui.button("load").clicked() {
-                    match Player::new(ctx, &self.media_path.replace("\"", "")).and_then(|p| {
-                        p.with_audio(&mut self.audio_device)
-                        .and_then(|p| p.with_subtitles())
-                    }) {
-                        Ok(player) => {
-                            self.player = Some(player);
-                        }
-                        Err(e) => println!("failed to make stream: {e}"),
-                    }
-                }
-            });
-            ui.add_enabled_ui(!self.media_path.is_empty(), |ui| {
-                if ui.button("clear").clicked() {
-                    self.player = None;
-                }
-            });
-
-            let tedit_resp = ui.add_sized(
-                [ui.available_width(), ui.available_height()],
-                                          TextEdit::singleline(&mut self.media_path)
-                                          .hint_text("click to set path")
-                                          .interactive(false),
-            );
-
-            if ui
-                .interact(
-                    tedit_resp.rect,
-                    tedit_resp.id.with("click_sense"),
-                          Sense::click(),
-                )
-                .clicked()
-                {
-                    if let Some(path_buf) = rfd::FileDialog::new()
-                        .add_filter("videos", &["mp4", "gif", "webm", "mkv", "ogg"])
-                        .pick_file()
-                        {
-                            self.media_path = path_buf.as_path().to_string_lossy().to_string();
-                        }
-                }
-        });
-        ui.separator();
+    pub fn ui(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         if let Some(player) = self.player.as_mut() {
             Window::new("info").show(ctx, |ui| {
                 Grid::new("info_grid").show(ui, |ui| {
@@ -142,10 +98,12 @@ impl Video {
             });
 
             player.ui(ui, player.size * self.stream_size_scale);
-        }*/
+        }
     }
 
-    pub fn set_media_path(&mut self, media_path: String) {
+    pub fn set_media_path(&mut self, ctx: &egui::Context, media_path: String) {
         self.media_path = media_path;
+        let player = egui_video::Player::new(ctx, &self.media_path).expect("can't create video player.");
+        self.player = Some(player);
     }
 }

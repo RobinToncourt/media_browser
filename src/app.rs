@@ -31,7 +31,7 @@ enum ActiveUi {
     Video,
 }
 
-pub struct TemplateApp {
+pub struct MediaBrowser {
     selected_path: Option<Path>,
     active_ui: ActiveUi,
     audio_player: Audio,
@@ -39,7 +39,7 @@ pub struct TemplateApp {
     video: Video,
 }
 
-impl Default for TemplateApp {
+impl Default for MediaBrowser {
     fn default() -> Self {
         Self {
             selected_path: None,
@@ -51,7 +51,7 @@ impl Default for TemplateApp {
     }
 }
 
-impl TemplateApp {
+impl MediaBrowser {
     /// Called once before the first frame.
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -66,7 +66,7 @@ impl TemplateApp {
         Default::default()
     }
 
-    fn main_component(&mut self, ui: &mut egui::Ui) {
+    fn main_component(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.columns(2, |columns| {
             ScrollArea::vertical()
                 .id_salt("explorer")
@@ -74,7 +74,7 @@ impl TemplateApp {
                     CollapsingHeader::new(HOME_PATH)
                         .default_open(false)
                         .show(ui, |ui| {
-                            self.print_document(ui, HOME_PATH);
+                            self.print_document(ctx, ui, HOME_PATH);
                         });
                 });
             ScrollArea::vertical()
@@ -82,12 +82,12 @@ impl TemplateApp {
                 .show(&mut columns[1], |ui| match self.active_ui {
                     ActiveUi::Audio => self.audio_player.ui(ui),
                     ActiveUi::Text => self.text.ui(ui),
-                    ActiveUi::Video => self.video.ui(ui),
+                    ActiveUi::Video => self.video.ui(ctx, ui),
                 });
         });
     }
 
-    fn print_document(&mut self, ui: &mut egui::Ui, path: &str) {
+    fn print_document(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, path: &str) {
         let home_dir = fs::read_dir(path).unwrap();
         for entry in home_dir {
             let entry = entry.unwrap();
@@ -96,7 +96,7 @@ impl TemplateApp {
                 CollapsingHeader::new(path.file_name().unwrap().to_str().unwrap())
                     .default_open(false)
                     .show(ui, |ui| {
-                        self.print_document(ui, &path.display().to_string());
+                        self.print_document(ctx, ui, &path.display().to_string());
                     });
             } else {
                 let file_name = path.file_name().unwrap().to_str().unwrap();
@@ -107,42 +107,47 @@ impl TemplateApp {
                         path.extension().unwrap().to_str().unwrap().to_string(),
                     ));
 
-                    self.resolve_file(ui);
+                    self.resolve_file(ctx, ui);
                 }
             }
         }
     }
 
-    fn resolve_file(&mut self, ui: &mut egui::Ui) {
+    fn resolve_file(&mut self, ctx: &egui::Context, _ui: &mut egui::Ui) {
         if let Some(path) = &self.selected_path {
             match path.extension.as_str() {
                 "png" | "jpg" => {
-                    ui.label("C'est une image");
+                    self.active_ui = ActiveUi::Text;
+                    self.text.print("Un mage d'Apple.".to_string());
                 }
                 "txt" => {
                     self.active_ui = ActiveUi::Text;
-                    //self.text.print();
+                    self.text.print("This is a text file, printing content to be done...".to_string());
                 }
                 "pdf" => {
-                    ui.label("Portable Document Format");
+                    self.active_ui = ActiveUi::Text;
+                    self.text.print("Portable Document Format.".to_string());
                 }
                 "mp3" => {
                     self.active_ui = ActiveUi::Audio;
                     self.audio_player
                         .play(path.full_path.clone(), path.file_name.clone());
                 }
+                "webm" => {
+                    self.active_ui = ActiveUi::Video;
+                    self.video.set_media_path(ctx, path.full_path.clone());
+                }
                 _ => {
-                    println!("{}", path.file_name.as_str());
+                    self.active_ui = ActiveUi::Text;
+                    self.text.print("Format non supporté!".to_string());
                 }
             }
-        } else {
-            ui.label("No file selected");
         }
     }
 }
 
 use egui::ScrollArea;
-impl eframe::App for TemplateApp {
+impl eframe::App for MediaBrowser {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         // eframe::set_value(storage, eframe::APP_KEY, self);
@@ -157,7 +162,7 @@ impl eframe::App for TemplateApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.main_component(ui);
+            self.main_component(ctx, ui);
         });
     }
 }

@@ -4,4 +4,4 @@ mod app;
 mod audio;
 mod text;
 mod video;
-pub use app::TemplateApp;
+pub use app::MediaBrowser;
